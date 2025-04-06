@@ -1,117 +1,231 @@
-# Paper.Social Multi-Cloud Deployment Pipeline
+# Paper Social - Multi-Cloud Infrastructure
 
-This project implements a multi-cloud deployment pipeline for Paper.Social's social media platform, utilizing both AWS and IBM Cloud services. The infrastructure is designed to be scalable, secure, and cost-effective.
+This repository contains the infrastructure as code and deployment configurations for Paper Social's platform, implementing a multi-cloud architecture using AWS EKS and IBM Cloud Kubernetes Service (IKS).
 
-## Project Structure
+## Architecture Overview
 
+### Infrastructure Components
 ```
-paper-social-devops/
+├── Kubernetes Clusters
+│   ├── AWS EKS
+│   │   ├── 3 worker nodes (t3.medium)
+│   │   └── Multi-AZ deployment
+│   └── IBM IKS
+│       ├── 3 worker nodes (bx2.4x16)
+│       └── Multi-zone deployment
+├── Networking
+│   ├── VPC with private subnets
+│   ├── NAT Gateways
+│   └── Load Balancers
+└── Monitoring Stack
+    ├── Prometheus
+    ├── Grafana
+    └── Loki
+```
+
+### Core Services
+- NGINX Ingress Controller
+- Metrics Server
+- Prometheus & Grafana
+- Centralized logging with Loki
+
+## Directory Structure
+```
+paper-social/
 ├── terraform/           # Infrastructure as Code
-│   ├── aws/            # AWS infrastructure
-│   └── ibm/            # IBM Cloud infrastructure
+│   ├── aws/            # AWS EKS configuration
+│   └── ibm/            # IBM IKS configuration
+├── k8s/                # Kubernetes manifests
 ├── ansible/            # Configuration management
-├── ci-cd/              # CI/CD pipeline configurations
-├── monitoring/         # Monitoring and logging setup
-└── app/                # Sample application
+├── ci-cd/              # CI/CD pipeline configs
+├── monitoring/         # Monitoring configuration
+└── app/                # Application code
 ```
 
 ## Prerequisites
 
-- Terraform (v1.0.0 or later)
-- Ansible (v2.9 or later)
-- AWS CLI configured with appropriate credentials
-- IBM Cloud CLI configured with appropriate credentials
+### Tools Required
+- Terraform >= 1.0
+- Ansible >= 2.9
+- kubectl
+- helm
+- AWS CLI
+- IBM Cloud CLI
 - Docker
-- Node.js (for the sample application)
 
-## Infrastructure Components
+### Cloud Provider Setup
+1. AWS Configuration:
+   ```bash
+   aws configure
+   ```
 
-### AWS Infrastructure
-- EC2 instance (t3.micro for cost optimization)
-- Security Groups
-- IAM roles and policies
-- CloudWatch for monitoring
+2. IBM Cloud Configuration:
+   ```bash
+   ibmcloud login
+   ibmcloud ks cluster config
+   ```
 
-### IBM Cloud Infrastructure
-- Virtual Server Instance
-- Security Groups
-- IAM policies
-- Log Analysis service
+## Deployment Pipeline
 
-## Configuration Management
+### 1. Infrastructure Provisioning
+```bash
+# AWS EKS Deployment
+cd terraform/aws
+terraform init
+terraform apply
 
-Ansible playbooks are used to:
-- Install Docker
-- Configure the runtime environment
-- Deploy the application
-- Set up monitoring agents
+# IBM IKS Deployment
+cd ../ibm
+terraform init
+terraform apply
+```
 
-## CI/CD Pipeline
+### 2. Kubernetes Configuration
+```bash
+# Configure kubectl for AWS
+aws eks update-kubeconfig --region us-west-2 --name paper-social-cluster
 
-The pipeline is implemented using GitHub Actions and includes:
-- Automated testing
-- Container building
-- Multi-cloud deployment
-- Security scanning
+# Configure kubectl for IBM
+ibmcloud ks cluster config --cluster paper-social-cluster
+```
+
+### 3. Application Deployment
+```bash
+# Deploy core components
+kubectl apply -f k8s/
+
+# Verify deployment
+kubectl get pods -A
+```
 
 ## Monitoring and Logging
 
-- AWS CloudWatch for AWS environment
-- IBM Log Analysis for IBM Cloud environment
-- Prometheus + Grafana for cross-cloud monitoring
-- Centralized logging with Loki
-
-## Getting Started
-
-1. Clone the repository
-2. Configure AWS and IBM Cloud credentials
-3. Initialize Terraform:
+### Prometheus & Grafana
+1. Access Grafana Dashboard:
    ```bash
-   cd terraform/aws
-   terraform init
-   terraform plan
-   terraform apply
-   
-   cd ../ibm
-   terraform init
-   terraform plan
-   terraform apply
+   kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80
    ```
-4. Run Ansible playbooks:
-   ```bash
-   cd ../ansible
-   ansible-playbook -i inventory setup.yml
-   ```
+   - Default URL: http://localhost:3000
+   - Username: admin
+   - Get password:
+     ```bash
+     kubectl get secret -n monitoring prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 --decode
+     ```
+
+### Centralized Logging
+- Loki for log aggregation
+- Promtail for log collection
+- Access logs through Grafana
+
+### Metrics and Alerts
+- Resource utilization metrics
+- Application performance metrics
+- Custom alert rules
+- Integration with communication channels
 
 ## Security Considerations
 
-- All infrastructure components use IAM roles and policies
-- Data encryption at rest and in transit
-- Regular security updates and patches
-- Network isolation using security groups
-- HTTPS enforced for all communications
+### Network Security
+- VPC isolation
+- Private subnets for worker nodes
+- Security groups and NACLs
+- Encrypted communication
+
+### Access Control
+- RBAC enabled
+- IAM integration
+- Pod security policies
+- Network policies
+
+### Data Security
+- Encrypted storage
+- Secrets management
+- Regular security updates
+- Compliance monitoring
 
 ## Cost Optimization
 
-- Use of spot instances where possible
-- Auto-scaling based on demand
-- Resource tagging for cost tracking
-- Regular cost analysis and optimization
+### Infrastructure Costs
+- Multi-cloud cost comparison
+- Resource optimization
+- Autoscaling configuration
+- Spot instance usage where applicable
 
-## Monitoring and Alerts
+### Monitoring and Optimization
+- Resource utilization tracking
+- Cost allocation tags
+- Regular cost analysis
+- Optimization recommendations
 
-- Real-time monitoring of system health
-- Automated alerts for critical issues
-- Performance metrics tracking
-- Cost monitoring and alerts
+## Design Decisions
+
+### Multi-Cloud Strategy
+- High availability across cloud providers
+- Vendor lock-in prevention
+- Geographic distribution
+- Cost optimization
+
+### Kubernetes Configuration
+- Managed services (EKS/IKS)
+- Multi-zone deployment
+- Automated scaling
+- Standardized monitoring
+
+### CI/CD Pipeline
+- GitHub Actions for automation
+- Multi-environment deployment
+- Automated testing
+- Security scanning
+
+## Troubleshooting
+
+### Common Issues
+1. Cluster Access:
+   ```bash
+   # AWS EKS
+   aws eks describe-cluster --name paper-social-cluster
+   
+   # IBM IKS
+   ibmcloud ks cluster get --cluster paper-social-cluster
+   ```
+
+2. Pod Issues:
+   ```bash
+   kubectl describe pod <pod-name>
+   kubectl logs <pod-name>
+   ```
+
+3. Node Issues:
+   ```bash
+   kubectl get nodes
+   kubectl describe node <node-name>
+   ```
+
+## Support and Maintenance
+
+### Regular Maintenance
+- Security patches
+- Version updates
+- Performance optimization
+- Backup verification
+
+### Support Channels
+1. Infrastructure Issues
+   - AWS Support
+   - IBM Cloud Support
+   - Internal DevOps team
+
+2. Application Issues
+   - GitHub Issues
+   - Internal documentation
+   - Team communication channels
 
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+3. Make your changes
+4. Submit a pull request
 
 ## License
 
