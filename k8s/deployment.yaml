@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paper-social
+  labels:
+    app: paper-social
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: paper-social
+  template:
+    metadata:
+      labels:
+        app: paper-social
+    spec:
+      containers:
+      - name: paper-social
+        image: paper-social:latest
+        ports:
+        - containerPort: 3000
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        envFrom:
+        - configMapRef:
+            name: paper-social-config 
