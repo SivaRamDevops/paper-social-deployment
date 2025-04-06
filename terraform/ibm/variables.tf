@@ -1,7 +1,43 @@
-variable "ibm_region" {
+variable "region" {
   description = "IBM Cloud region"
   type        = string
   default     = "us-south"
+}
+
+variable "environment" {
+  description = "Environment name"
+  type        = string
+  default     = "production"
+}
+
+variable "resource_group" {
+  description = "IBM Cloud Resource Group"
+  type        = string
+  default     = "default"
+}
+
+variable "cluster_name" {
+  description = "Name of the IKS cluster"
+  type        = string
+  default     = "paper-social-cluster"
+}
+
+variable "worker_pool_flavor" {
+  description = "Machine type for worker nodes"
+  type        = string
+  default     = "bx2.4x16"
+}
+
+variable "worker_count" {
+  description = "Number of worker nodes per zone"
+  type        = number
+  default     = 1
+}
+
+variable "kube_version" {
+  description = "Kubernetes version"
+  type        = string
+  default     = "1.27"
 }
 
 variable "ibm_zone" {
@@ -19,12 +55,6 @@ variable "ibm_image_id" {
 variable "ssh_public_key" {
   description = "SSH public key for instance access"
   type        = string
-}
-
-variable "environment" {
-  description = "Environment name"
-  type        = string
-  default     = "production"
 }
 
 variable "project_name" {
