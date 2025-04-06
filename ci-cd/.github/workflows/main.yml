@@ -1,0 +1,89 @@
+name: Paper.Social CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+          
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Run tests
+        run: npm test
+        
+  deploy-aws:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: aws
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+          
+      - name: Deploy to AWS
+        run: |
+          cd terraform/aws
+          terraform init
+          terraform plan
+          terraform apply -auto-approve
+          
+  deploy-ibm:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: ibm
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Configure IBM Cloud credentials
+        uses: IBM/cloud-actions/configure-ibm-cloud-credentials@v1
+        with:
+          ibmcloud-api-key: ${{ secrets.IBM_CLOUD_API_KEY }}
+          ibmcloud-region: us-south
+          
+      - name: Deploy to IBM Cloud
+        run: |
+          cd terraform/ibm
+          terraform init
+          terraform plan
+          terraform apply -auto-approve
+          
+  configure-servers:
+    needs: [deploy-aws, deploy-ibm]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+          
+      - name: Configure IBM Cloud credentials
+        uses: IBM/cloud-actions/configure-ibm-cloud-credentials@v1
+        with:
+          ibmcloud-api-key: ${{ secrets.IBM_CLOUD_API_KEY }}
+          ibmcloud-region: us-south
+          
+      - name: Run Ansible playbook
+        run: |
+          cd ansible
+          ansible-playbook -i inventory setup.yml 

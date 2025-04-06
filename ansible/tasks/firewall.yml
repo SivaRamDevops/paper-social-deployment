@@ -1,0 +1,63 @@
+---
+- name: Install UFW (Debian)
+  package:
+    name: ufw
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Configure UFW
+  ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  with_items:
+    - 22
+    - 80
+    - 443
+    - 3000
+    - 8080
+    - 9090
+    - 9100
+    - 3100
+  when: ansible_os_family == "Debian"
+
+- name: Enable UFW
+  ufw:
+    state: enabled
+    policy: deny
+  when: ansible_os_family == "Debian"
+
+- name: Install firewalld (RedHat)
+  package:
+    name: firewalld
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Start and enable firewalld
+  service:
+    name: firewalld
+    state: started
+    enabled: yes
+  when: ansible_os_family == "RedHat"
+
+- name: Configure firewalld
+  firewalld:
+    port: "{{ item }}/tcp"
+    permanent: yes
+    state: enabled
+  with_items:
+    - 22
+    - 80
+    - 443
+    - 3000
+    - 8080
+    - 9090
+    - 9100
+    - 3100
+  when: ansible_os_family == "RedHat"
+
+- name: Reload firewalld
+  service:
+    name: firewalld
+    state: reloaded
+  when: ansible_os_family == "RedHat" 

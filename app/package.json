@@ -1,0 +1,19 @@
+{
+  "name": "paper-social",
+  "version": "1.0.0",
+  "description": "Paper.Social sample application",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "pg": "^8.7.1",
+    "winston": "^3.3.3"
+  },
+  "devDependencies": {
+    "jest": "^27.3.1",
+    "supertest": "^6.1.6"
+  }
+} 

@@ -1,0 +1,80 @@
+---
+- name: Configure Paper.Social servers
+  hosts: all
+  become: true
+  vars:
+    app_name: "paper-social"
+    app_port: 3000
+    docker_compose_version: "1.29.2"
+
+  tasks:
+    - name: Update package cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+    - name: Update package cache (RedHat)
+      yum:
+        update_cache: yes
+      when: ansible_os_family == "RedHat"
+
+    - name: Install required packages
+      package:
+        name:
+          - python3-pip
+          - python3-dev
+          - git
+          - curl
+          - wget
+          - apt-transport-https
+          - ca-certificates
+          - software-properties-common
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install required packages (RedHat)
+      package:
+        name:
+          - python3-pip
+          - python3-devel
+          - git
+          - curl
+          - wget
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Install Docker
+      include_tasks: tasks/docker.yml
+
+    - name: Install Docker Compose
+      include_tasks: tasks/docker-compose.yml
+
+    - name: Create application directory
+      file:
+        path: "/opt/{{ app_name }}"
+        state: directory
+        mode: '0755'
+
+    - name: Copy application files
+      copy:
+        src: "{{ playbook_dir }}/../app/"
+        dest: "/opt/{{ app_name }}"
+        mode: '0644'
+
+    - name: Create Docker Compose file
+      template:
+        src: templates/docker-compose.yml.j2
+        dest: "/opt/{{ app_name }}/docker-compose.yml"
+        mode: '0644'
+
+    - name: Start application with Docker Compose
+      docker_compose:
+        project_src: "/opt/{{ app_name }}"
+        state: present
+
+    - name: Install monitoring agents
+      include_tasks: tasks/monitoring.yml
+
+    - name: Configure firewall
+      include_tasks: tasks/firewall.yml 

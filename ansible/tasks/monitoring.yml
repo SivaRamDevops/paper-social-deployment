@@ -1,0 +1,81 @@
+---
+- name: Install Prometheus Node Exporter
+  docker_container:
+    name: prometheus-node-exporter
+    image: prom/node-exporter:latest
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command: --path.procfs=/host/proc --path.sysfs=/host/sys --collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)
+    restart_policy: always
+    state: started
+
+- name: Install cAdvisor
+  docker_container:
+    name: cadvisor
+    image: gcr.io/cadvisor/cadvisor:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    restart_policy: always
+    state: started
+
+- name: Install Grafana
+  docker_container:
+    name: grafana
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    restart_policy: always
+    state: started
+
+- name: Install Prometheus
+  docker_container:
+    name: prometheus
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus-data:/prometheus
+      - "{{ playbook_dir }}/../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    restart_policy: always
+    state: started
+
+- name: Install Loki
+  docker_container:
+    name: loki
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    volumes:
+      - "{{ playbook_dir }}/../monitoring/loki-config.yml:/etc/loki/local-config.yaml"
+    command: -config.file=/etc/loki/local-config.yaml
+    restart_policy: always
+    state: started
+
+- name: Install Promtail
+  docker_container:
+    name: promtail
+    image: grafana/promtail:latest
+    volumes:
+      - /var/log:/var/log
+      - "{{ playbook_dir }}/../monitoring/promtail-config.yml:/etc/promtail/config.yml"
+    command: -config.file=/etc/promtail/config.yml
+    restart_policy: always
+    state: started 
